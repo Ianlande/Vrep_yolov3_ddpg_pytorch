@@ -28,7 +28,7 @@ from __future__ import division
 import numpy as np
 import math
 import time
-import vrep
+import lib.vrep as vrep
 import os
 
 
