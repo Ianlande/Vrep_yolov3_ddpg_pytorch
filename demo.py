@@ -6,6 +6,7 @@ created by: longyucheng
 
 简略介绍：
     采用模式：
+        数据流模式(Data streaming)
         非阻塞式函数调用模式(Non-blocking function calls),用于set命令
         阻塞调用(Blocking function calls),用于get命令
 """
@@ -49,6 +50,8 @@ while True:
         print("Maybe you forget to run the simulation on vrep...")
 print("Connection success!")
 
+# 同步
+vrep.simxSynchronous(clientID,True)
 # 仿真初始化
 vrep.simxStartSimulation(clientID, vrep.simx_opmode_oneshot)
 
@@ -74,7 +77,7 @@ print("======================")
 jointConfig = np.zeros((jointNum, 1))
 for i in range(jointNum):
     # 参数：simx_opmode_streaming(连续数据流模式)
-     _, jpos = vrep.simxGetJointPosition(clientID, jointHandle[i], vrep.simx_opmode_blocking)
+     _, jpos = vrep.simxGetJointPosition(clientID, jointHandle[i], vrep.simx_opmode_streaming)
      jointConfig[i] = jpos
 
 print("jointConfig:  ")
@@ -93,7 +96,8 @@ for i in range(jointNum):
 
 # 开始仿真
 start_time = vrep.simxGetLastCmdTime(clientID)
-if vrep.simxGetConnectionId(clientID) != -1:
+vrep.simxSynchronousTrigger(clientID)
+while vrep.simxGetConnectionId(clientID) != -1:
     #===========code=====================
     
     # 暂停通信，用于存储所有控制命令一起发送
@@ -101,26 +105,21 @@ if vrep.simxGetConnectionId(clientID) != -1:
     for i in range(jointNum):
         vrep.simxSetJointTargetPosition(clientID, jointHandle[i], joint_angle[i]/RAD2DEG, vrep.simx_opmode_oneshot)
     vrep.simxPauseCommunication(clientID, False)
-    vrep.simxGetPingTime(clientID)
     
-    while True:
-        if vrep.simxGetConnectionId(clientID) != -1:
-            # 读取当前的状态配置
-            for i in range(jointNum):
-                _, jpos = vrep.simxGetJointPosition(clientID, jointHandle[i], vrep.simx_opmode_blocking)
-                jointConfig[i] = jpos
-                print(round(jpos * RAD2DEG, 2), end='  ')
-            print('\n')
-        else:
-            break
-            
+    for i in range(jointNum):
+        _, jpos = vrep.simxGetJointPosition(clientID, jointHandle[i], vrep.simx_opmode_buffer)
+        jointConfig[i] = jpos
+        print(round(jpos * RAD2DEG, 2), end='  ')
+    print('\n')
+    
     res, retInts, retFloats, retStrings, retBuffer = vrep.simxCallScriptFunction(clientID, rgName,\
                                                     vrep.sim_scripttype_childscript,'rg2Close',[],[],[],b'',vrep.simx_opmode_blocking)
     
     #===========code=====================
-else:
-    print("连接丢失!....")
-        
+    vrep.simxSynchronousTrigger(clientID)
+    vrep.simxGetPingTime(clientID)    # 使当前step走完,以便仿真结束后程序能停下,不然陷入死循环
+    
+    
 end_time = vrep.simxGetLastCmdTime(clientID)
 t = end_time - start_time
 vrep.simxFinish(clientID)
