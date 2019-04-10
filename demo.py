@@ -69,6 +69,8 @@ print("Handles:  ")
 for i in range(len(jointHandle)):
     print("jointHandle" + str(i+1) + ": ", end = '')
     print(jointHandle[i])
+print("rgHandle:")
+print(rgHandle)
 print("======================")
 
 
@@ -97,14 +99,20 @@ for i in range(jointNum):
 # 开始仿真
 start_time = vrep.simxGetLastCmdTime(clientID)
 vrep.simxSynchronousTrigger(clientID)
+
+# moving ur5
+# 暂停通信，用于存储所有控制命令一起发送
+vrep.simxPauseCommunication(clientID, True)
+for i in range(jointNum):
+    vrep.simxSetJointTargetPosition(clientID, jointHandle[i], joint_angle[i]/RAD2DEG, vrep.simx_opmode_oneshot)
+vrep.simxPauseCommunication(clientID, False)
+
+# close rg2
+res, retInts, retFloats, retStrings, retBuffer = vrep.simxCallScriptFunction(clientID, rgName,\
+                                                vrep.sim_scripttype_childscript,'rg2Close',[],[],[],b'',vrep.simx_opmode_blocking)
+                                                
+
 while vrep.simxGetConnectionId(clientID) != -1:
-    #===========code=====================
-    
-    # 暂停通信，用于存储所有控制命令一起发送
-    vrep.simxPauseCommunication(clientID, True)
-    for i in range(jointNum):
-        vrep.simxSetJointTargetPosition(clientID, jointHandle[i], joint_angle[i]/RAD2DEG, vrep.simx_opmode_oneshot)
-    vrep.simxPauseCommunication(clientID, False)
     
     for i in range(jointNum):
         _, jpos = vrep.simxGetJointPosition(clientID, jointHandle[i], vrep.simx_opmode_buffer)
@@ -112,10 +120,6 @@ while vrep.simxGetConnectionId(clientID) != -1:
         print(round(jpos * RAD2DEG, 2), end='  ')
     print('\n')
     
-    res, retInts, retFloats, retStrings, retBuffer = vrep.simxCallScriptFunction(clientID, rgName,\
-                                                    vrep.sim_scripttype_childscript,'rg2Close',[],[],[],b'',vrep.simx_opmode_blocking)
-    
-    #===========code=====================
     vrep.simxSynchronousTrigger(clientID)
     vrep.simxGetPingTime(clientID)    # 使当前step走完,以便仿真结束后程序能停下,不然陷入死循环
     
