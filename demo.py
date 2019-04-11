@@ -27,12 +27,13 @@ joint_angle = [0,0,0,90,30,0]   #每个关节转动的角度(度数)
 RAD2DEG = 180 / math.pi   # 常数，弧度转度数
 tstep = 0.005             # 定义仿真步长
 
-# 配置关节信息
+# Handles information
 jointNum = 6
 baseName = 'UR5'
 rgName = 'RG2'
 jointName = 'UR5_joint'
-
+camera_rgb_Name = 'kinect_rgb'
+camera_depth_Name = 'kinect_depth'
 
 # 初始化
 print('Program started')
@@ -63,6 +64,8 @@ for i in range(jointNum):
 
 _, baseHandle = vrep.simxGetObjectHandle(clientID, baseName, vrep.simx_opmode_blocking)
 _, rgHandle = vrep.simxGetObjectHandle(clientID, rgName, vrep.simx_opmode_blocking)
+_, cameraRGBHandle = vrep.simxGetObjectHandle(clientID, camera_rgb_Name, vrep.simx_opmode_blocking)
+_, cameraDepthHandle = vrep.simxGetObjectHandle(clientID, camera_depth_Name, vrep.simx_opmode_blocking)
 
 print('Handles available!')
 print("Handles:  ")
@@ -71,6 +74,10 @@ for i in range(len(jointHandle)):
     print(jointHandle[i])
 print("rgHandle:")
 print(rgHandle)
+print("cameraRGBHandle:")
+print(cameraRGBHandle)
+print("cameraDepthHandle:")
+print(cameraDepthHandle)
 print("======================")
 
 
@@ -99,6 +106,17 @@ for i in range(jointNum):
 # 开始仿真
 start_time = vrep.simxGetLastCmdTime(clientID)
 vrep.simxSynchronousTrigger(clientID)
+
+res1, resolution1, image_rgb = vrep.simxGetVisionSensorImage(clientID, cameraRGBHandle, 1, vrep.simx_opmode_blocking  )
+res2, resolution2, image_depth = vrep.simxGetVisionSensorImage(clientID, cameraDepthHandle, 1, vrep.simx_opmode_blocking  )
+print('res_rgb: ',end='')
+print(res1)
+print('resolution: ',end='')
+print(resolution1)
+print('res_depth: ',end='')
+print(res2)
+print('resolution: ',end='')
+print(resolution2)
 
 # moving ur5
 # 暂停通信，用于存储所有控制命令一起发送
