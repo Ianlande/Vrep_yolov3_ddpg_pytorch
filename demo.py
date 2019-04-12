@@ -17,12 +17,16 @@ import math
 import time
 import lib.vrep as vrep
 import os
+import cv2
+import numpy as np
 
 
 # 配置参数
 robot_velocity = 0.01        # 关节运行速度
 robot_force = 30            # 能达到的最大力度
-joint_angle = [0,0,0,90,30,0]   #每个关节转动的角度(度数)
+joint_angle = [90,0,0,-45,90,0]   #每个关节转动的角度(度数)
+resolutionX = 480           # 摄像机图片分辨率X: 640*480
+resolutionY = 640           # 摄像机图片分辨率Y
 
 RAD2DEG = 180 / math.pi   # 常数，弧度转度数
 tstep = 0.005             # 定义仿真步长
@@ -81,8 +85,7 @@ print(cameraDepthHandle)
 print("======================")
 
 
-
-# 首次读取每个关节配置以及末端位置
+# 首次读取每个关节角度
 jointConfig = np.zeros((jointNum, 1))
 for i in range(jointNum):
     # 参数：simx_opmode_streaming(连续数据流模式)
@@ -91,7 +94,7 @@ for i in range(jointNum):
 
 print("jointConfig:  ")
 for i in range(len(jointHandle)):
-    print("jointConfig" + str(i+1) + ": ", end = '')
+    print("joint angle" + str(i+1) + ": ", end = '')
     print(jointConfig[i])
 print("======================")
 os.system('pause')
@@ -107,16 +110,33 @@ for i in range(jointNum):
 start_time = vrep.simxGetLastCmdTime(clientID)
 vrep.simxSynchronousTrigger(clientID)
 
-res1, resolution1, image_rgb = vrep.simxGetVisionSensorImage(clientID, cameraRGBHandle, 1, vrep.simx_opmode_blocking  )
-res2, resolution2, image_depth = vrep.simxGetVisionSensorImage(clientID, cameraDepthHandle, 1, vrep.simx_opmode_blocking  )
-print('res_rgb: ',end='')
-print(res1)
-print('resolution: ',end='')
-print(resolution1)
-print('res_depth: ',end='')
-print(res2)
-print('resolution: ',end='')
-print(resolution2)
+# 第一次获取rgb图像
+res1, resolution1, image_rgb = vrep.simxGetVisionSensorImage(clientID, cameraRGBHandle, 0, vrep.simx_opmode_blocking)
+
+image_rgb_r = [image_rgb[i] for i in range(0,len(image_rgb),3)]
+image_rgb_r = np.array(image_rgb_r)
+image_rgb_r = image_rgb_r.reshape(resolutionX,resolutionY)
+image_rgb_r = image_rgb_r.astype(np.uint8)
+
+image_rgb_g = [image_rgb[i] for i in range(1,len(image_rgb),3)]
+image_rgb_g = np.array(image_rgb_g)
+image_rgb_g = image_rgb_g.reshape(resolutionX,resolutionY)
+image_rgb_g = image_rgb_g.astype(np.uint8)
+
+image_rgb_b = [image_rgb[i] for i in range(2,len(image_rgb),3)]
+image_rgb_b = np.array(image_rgb_b)
+image_rgb_b = image_rgb_b.reshape(resolutionX,resolutionY)
+image_rgb_b = image_rgb_b.astype(np.uint8)
+
+
+result = cv2.merge([image_rgb_b,image_rgb_g,image_rgb_r])
+
+cv2.namedWindow("kinect_rgb")
+cv2.imshow("kinect_rgb", result)
+
+# 第一次获取深度图像
+#res2, resolution2, image_depth = vrep.simxGetVisionSensorImage(clientID, cameraDepthHandle, 1, vrep.simx_opmode_blocking)
+
 
 # moving ur5
 # 暂停通信，用于存储所有控制命令一起发送
@@ -129,24 +149,33 @@ vrep.simxPauseCommunication(clientID, False)
 res, retInts, retFloats, retStrings, retBuffer = vrep.simxCallScriptFunction(clientID, rgName,\
                                                 vrep.sim_scripttype_childscript,'rg2Close',[],[],[],b'',vrep.simx_opmode_blocking)
                                                 
-
+"""
 while vrep.simxGetConnectionId(clientID) != -1:
-    
+
     for i in range(jointNum):
         _, jpos = vrep.simxGetJointPosition(clientID, jointHandle[i], vrep.simx_opmode_buffer)
         jointConfig[i] = jpos
         print(round(jpos * RAD2DEG, 2), end='  ')
     print('\n')
-    
+
+    res1, resolution1, image_rgb = vrep.simxGetVisionSensorImage(clientID, cameraRGBHandle, 1, vrep.simx_opmode_blocking)
+    image_rgb = np.array(image_rgb)
+    image_rgb = image_rgb.reshape(resolutionX,resolutionY)
+    image_rgb = image_rgb.astype(np.uint8)
+    cv2.imshow("kinect_rgb", image_rgb)
+
     vrep.simxSynchronousTrigger(clientID)
     vrep.simxGetPingTime(clientID)    # 使当前step走完,以便仿真结束后程序能停下,不然陷入死循环
     
+"""
     
 end_time = vrep.simxGetLastCmdTime(clientID)
 t = end_time - start_time
 vrep.simxFinish(clientID)
 print('program ended')
 print("运行时间: " + str(round(t/1000, 2)) + "(s)")
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 
 
 
