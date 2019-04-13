@@ -128,14 +128,37 @@ image_rgb_b = np.array(image_rgb_b)
 image_rgb_b = image_rgb_b.reshape(resolutionX,resolutionY)
 image_rgb_b = image_rgb_b.astype(np.uint8)
 
-
-result = cv2.merge([image_rgb_b,image_rgb_g,image_rgb_r])
+result_rgb = cv2.merge([image_rgb_b,image_rgb_g,image_rgb_r])
 
 cv2.namedWindow("kinect_rgb")
-cv2.imshow("kinect_rgb", result)
+cv2.imshow("kinect_rgb", result_rgb)
 
 # 第一次获取深度图像
-#res2, resolution2, image_depth = vrep.simxGetVisionSensorImage(clientID, cameraDepthHandle, 1, vrep.simx_opmode_blocking)
+res2, resolution2, image_depth = vrep.simxGetVisionSensorImage(clientID, cameraDepthHandle, 0, vrep.simx_opmode_blocking)
+
+image_depth_r = [image_depth[i] for i in range(0,len(image_depth),3)]
+image_depth_r = np.array(image_depth_r)
+image_depth_r = image_depth_r.reshape(resolutionX,resolutionY)
+image_depth_r = image_depth_r.astype(np.uint8)
+
+image_depth_g = [image_depth[i] for i in range(1,len(image_depth),3)]
+image_depth_g = np.array(image_depth_g)
+image_depth_g = image_depth_g.reshape(resolutionX,resolutionY)
+image_depth_g = image_depth_g.astype(np.uint8)
+
+image_depth_b = [image_depth[i] for i in range(2,len(image_depth),3)]
+image_depth_b = np.array(image_depth_b)
+image_depth_b = image_depth_b.reshape(resolutionX,resolutionY)
+image_depth_b = image_depth_b.astype(np.uint8)
+
+result_depth = cv2.merge([image_depth_b,image_depth_g,image_depth_r])
+
+cv2.namedWindow("image_depth")
+cv2.imshow("image_depth", result_depth)
+
+# 关闭所有窗口
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 
 
 # moving ur5
@@ -149,33 +172,22 @@ vrep.simxPauseCommunication(clientID, False)
 res, retInts, retFloats, retStrings, retBuffer = vrep.simxCallScriptFunction(clientID, rgName,\
                                                 vrep.sim_scripttype_childscript,'rg2Close',[],[],[],b'',vrep.simx_opmode_blocking)
                                                 
-"""
 while vrep.simxGetConnectionId(clientID) != -1:
-
     for i in range(jointNum):
         _, jpos = vrep.simxGetJointPosition(clientID, jointHandle[i], vrep.simx_opmode_buffer)
         jointConfig[i] = jpos
         print(round(jpos * RAD2DEG, 2), end='  ')
     print('\n')
-
-    res1, resolution1, image_rgb = vrep.simxGetVisionSensorImage(clientID, cameraRGBHandle, 1, vrep.simx_opmode_blocking)
-    image_rgb = np.array(image_rgb)
-    image_rgb = image_rgb.reshape(resolutionX,resolutionY)
-    image_rgb = image_rgb.astype(np.uint8)
-    cv2.imshow("kinect_rgb", image_rgb)
-
+    
     vrep.simxSynchronousTrigger(clientID)
     vrep.simxGetPingTime(clientID)    # 使当前step走完,以便仿真结束后程序能停下,不然陷入死循环
     
-"""
     
 end_time = vrep.simxGetLastCmdTime(clientID)
 t = end_time - start_time
 vrep.simxFinish(clientID)
 print('program ended')
 print("运行时间: " + str(round(t/1000, 2)) + "(s)")
-cv2.waitKey(0)
-cv2.destroyAllWindows()
 
 
 
