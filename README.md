@@ -9,6 +9,7 @@ imgTemp、imgTempDep、imgTempDet、saveImg：储存各种图像的文件夹
 darknet.py、darknetUtils.py、yolo.py：与YOLOV3有关的程序  
 vrep.py、vrepConst.py、remoteApi.dll：与V-rep有关的程序  
 pallete：调色板文件  
+DDPG.py：DDPG算法  
 
 ### `robotControl.py`、`robotDetect.py`
 使用键盘控制机械臂 : 先启动VREP仿真,再启动程序  
@@ -25,3 +26,6 @@ T : close RG2
 Y : open RG2  
 L : reset robot  
 SPACE : save image  
+
+### `robotRL.py`
+强化学习控制机械臂末端靠近圆球
